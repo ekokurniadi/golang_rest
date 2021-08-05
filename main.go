@@ -19,12 +19,20 @@ func main() {
 	defer db.Close()
 	router := gin.Default()
 
-	type User struct {
-		Id       int    `json:"id"`
-		Nama     string `json:"nama"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+	type Album struct {
+		Id        int    `json:"id"`
+		Foto      string `json:"foto"`
+		Caption   string `json:"caption"`
+		CreatedAt string `json:"createdAt"`
 	}
+	type User struct {
+		Id       int     `json:"id"`
+		Nama     string  `json:"nama"`
+		Email    string  `json:"email"`
+		Password string  `json:"password"`
+		Album    []Album `json:"albums"`
+	}
+
 	// mendapatkan data by id user
 	router.GET("/user/:id", func(c *gin.Context) {
 		var (
@@ -47,6 +55,47 @@ func main() {
 			}
 		}
 		c.JSON(http.StatusOK, result)
+	})
+
+	router.GET("/user/album/:id", func(c *gin.Context) {
+		var (
+			albums []Album
+			album  Album
+			user   User
+			result gin.H
+		)
+		id := c.Param("id")
+		row := db.QueryRow("select id,nama,email,password from user where id=?", id)
+		err = row.Scan(&user.Id, &user.Nama, &user.Email, &user.Password)
+		if err != nil {
+			fmt.Print(err.Error())
+		}
+		rows, errs := db.Query("select id,foto,caption,created_at from user_album where id_user=?", id)
+		if errs != nil {
+			fmt.Print(errs.Error())
+		}
+		for rows.Next() {
+			errs = rows.Scan(&album.Id, &album.Foto, &album.Caption, &album.CreatedAt)
+			albums = append(albums, album)
+			if errs != nil {
+				fmt.Print(errs.Error())
+			}
+		}
+		final := User{Id: user.Id, Nama: user.Nama, Email: user.Email, Password: user.Password, Album: albums}
+		if err != nil {
+			result = gin.H{
+				"status":  "Error",
+				"message": "Data tidak ditemukan",
+			}
+		} else {
+			result = gin.H{
+				"status": "Success",
+				"values": final,
+			}
+		}
+		defer rows.Close()
+		c.JSON(http.StatusOK, result)
+
 	})
 
 	// mendapatkan seluruh data user
