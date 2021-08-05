@@ -103,6 +103,54 @@ func main() {
 		})
 	})
 
+	// update data user
+	router.PUT("/user", func(c *gin.Context) {
+		var buffer bytes.Buffer
+		id := c.PostForm("id")
+		nama := c.PostForm("nama")
+		email := c.PostForm("email")
+		password := c.PostForm("password")
+
+		smt, err := db.Prepare("UPDATE user set nama=?,email=?,password=? where id=?")
+
+		if err != nil {
+			fmt.Print(err.Error())
+		}
+
+		_, err = smt.Exec(nama, email, password, id)
+
+		if err != nil {
+			fmt.Print(err.Error())
+		}
+
+		buffer.WriteString(nama)
+		buffer.WriteString(" ")
+		buffer.WriteString(email)
+		defer smt.Close()
+
+		data := buffer.String()
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("Berhasil merubah data %s", data),
+		})
+	})
+
+	router.DELETE("/user", func(c *gin.Context) {
+		id := c.PostForm("id")
+		smt, err := db.Prepare("DELETE FROM user where id=?")
+		if err != nil {
+			fmt.Print(err.Error())
+		}
+		_, err = smt.Exec(id)
+
+		if err != nil {
+			fmt.Print(err.Error())
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("Berhasil menghapus data %s", id),
+		})
+	})
+
 	router.Run(":8080")
 
 }
